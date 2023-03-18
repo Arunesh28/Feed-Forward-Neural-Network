@@ -50,6 +50,7 @@ class NeuralNet:
                  output_layer_dim,
                  batch_size,
                  num_epochs,
+                 loss = 'cross_entropy',
                  output_activation = softmax,
                  der_output_activation = der_softmax,
                  beta=0.9,
@@ -60,6 +61,8 @@ class NeuralNet:
         self.weight_initializer = self.weight_initializers[weight_initializer]
         self.activation_functions = {"sigmoid": sigmoid, "tanh": tanh, "ReLU": relu}
         self.der_activation_functions = {"sigmoid": der_sigmoid, "tanh": der_tanh, "ReLU": der_relu}
+        self.loss_functions = {'cross_entropy':self.Cross_Entropy_Loss,'mse' : self.Square_Error_Loss}
+        self.loss = self.loss_functions[loss]
         '''
             Add your optimizer function and class in the below dictionaries
         '''
@@ -96,7 +99,7 @@ class NeuralNet:
         return np.mean((Y_pred-Y_actual)**2)
     
     def Cross_Entropy_Loss(self,Y_pred,Y_actual):
-        return -1.0*np.sum(np.multiply(Y_actual,np.log(Y_pred)))/float(Y_pred.shape[0])
+        return (-1.0*np.sum(np.multiply(Y_actual+1,np.log(Y_pred+1))))/float(Y_pred.shape[0])
     
     def random_initialization(self, in_layer, out_layer):
         return np.random.randn(in_layer, out_layer)
@@ -250,13 +253,13 @@ class NeuralNet:
             for i in range(0,self.X_train.shape[1],self.batch_size):
                 curr_batch = min(self.X_train.shape[1]-i,self.batch_size)
                 self.optimizer(self.X_train[:,i:i+curr_batch],self.Y_train[:,i:i+curr_batch])
-            train_acc,validation_acc = self.accuracy_NeuralNet(self.old_Y_train,self.old_Yv)
+            train_acc,validation_acc,training_loss,validation_loss = self.accuracy_NeuralNet(self.old_Y_train,self.old_Yv)
             wandb.log({ "training_accuracy" : train_acc,
                         "validation_accuracy" : validation_acc,
-                        "epoch" : curr_epoch})
-            # Y_pred = self.predict_NeuralNet(self.X_train)
-            # print("Cross Entropy Loss in the",curr_epoch+1,"epoch :",self.Cross_Entropy_Loss(Y_pred, Y_train))
-            print(self.accuracy_NeuralNet(self.old_Y_train,self.old_Yv))
+                        "training_loss" : training_loss,
+                        "validation_loss" : validation_loss,
+                        "epoch" : curr_epoch+1})
+            print(train_acc,validation_acc,training_loss,validation_loss)
         # pass
     
     def predict_NeuralNet(self,X):
@@ -267,9 +270,9 @@ class NeuralNet:
     def accuracy_NeuralNet(self,Y_train,Yv):
         Y_train_pred = self.predict_NeuralNet(self.X_train)
         Yv_pred = self.predict_NeuralNet(self.Xv)
-        return self.accuracy_score(Y_train_pred,Y_train),self.accuracy_score(Yv_pred,Yv)
+        training_Loss = self.loss(Y_train_pred,self.old_Y_train)
+        validation_Loss = self.loss(Yv_pred,self.old_Yv)
+        return self.accuracy_score(Y_train_pred,Y_train),self.accuracy_score(Yv_pred,Yv),training_Loss,validation_Loss
     
     def accuracy_score(self, Y_pred, Y_train):
         return np.sum(Y_pred == Y_train)/Y_train.shape[0]
-        # print("Training Accuracy =",accuracy_score(Y_train_pred,Y_train))
-        # print("Test Accuracy =",accuracy_score(Yv_pred,Yv))
