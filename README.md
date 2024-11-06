@@ -8,7 +8,7 @@
     python3 main.py -wp <projectname> -we <YourName>
 ```
 
-### Below is the arguements supported by my code
+### Below are the supported arguements
 
 | Name | Default Value | Description |
 | :---: | :-------------: | :----------- |
